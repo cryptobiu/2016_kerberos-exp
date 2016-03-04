@@ -9,3 +9,6 @@ objs::
 	
 clean::
 	rm MPCCircuit.o Share.o XorShift.o MPCParty.o App.exe
+
+lib:
+	ar -cvq libmpc.a MPCCircuit.o Share.o XorShift.o MPCParty.o
