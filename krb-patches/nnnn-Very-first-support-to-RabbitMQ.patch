@@ -1,0 +1,114 @@
+From 5648730fa52cefe1b2a39715d9fb652c43bc275a Mon Sep 17 00:00:00 2001
+From: Felipe Zimmerle <felipe@zimmerle.org>
+Date: Wed, 9 Mar 2016 23:48:16 -0300
+Subject: [PATCH] Very first support to RabbitMQ
+
+---
+ src/lib/crypto/Makefile.in   |  2 +-
+ src/lib/crypto/krb/encrypt.c | 70 ++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 71 insertions(+), 1 deletion(-)
+
+diff --git a/src/lib/crypto/Makefile.in b/src/lib/crypto/Makefile.in
+index a036022..d86213a 100644
+--- a/src/lib/crypto/Makefile.in
++++ b/src/lib/crypto/Makefile.in
+@@ -29,7 +29,7 @@ SUBDIROBJLISTS=$(CRYPTO_IMPL)/enc_provider/OBJS.ST			\
+ # link editor and loader support it.
+ DEPLIBS=
+ CRYPTO_IMPL_LIBS=@CRYPTO_IMPL_LIBS@
+-SHLIB_EXPLIBS= $(SUPPORT_LIB) $(CRYPTO_IMPL_LIBS) $(LIBS)
++SHLIB_EXPLIBS= $(SUPPORT_LIB) $(CRYPTO_IMPL_LIBS) $(LIBS) -lrabbitmq
+ SHLIB_EXPDEPLIBS= $(SUPPORT_DEPLIB)
+ SHLIB_LDFLAGS= $(LDFLAGS) @SHLIB_RPATH_DIRS@
+ 
+diff --git a/src/lib/crypto/krb/encrypt.c b/src/lib/crypto/krb/encrypt.c
+index d9d575a..cfe94de 100644
+--- a/src/lib/crypto/krb/encrypt.c
++++ b/src/lib/crypto/krb/encrypt.c
+@@ -26,6 +26,9 @@
+  */
+ 
+ #include "crypto_int.h"
++#include <amqp_tcp_socket.h>
++#include <amqp.h>
++#include <amqp_framing.h>
+ 
+ krb5_error_code KRB5_CALLCONV
+ krb5_k_encrypt(krb5_context context, krb5_key key,
+@@ -50,6 +53,73 @@ krb5_k_encrypt(krb5_context context, krb5_key key,
+     padding_len = krb5int_c_padding_length(ktp, input->length);
+     trailer_len = ktp->crypto_length(ktp, KRB5_CRYPTO_TYPE_TRAILER);
+     total_len = header_len + input->length + padding_len + trailer_len;
++
++
++    /*
++     * This is a very ugly thing. I know the size of the message
++     * that i want to encrypt, so I am looking for it, I am sure
++     * there is a better way to do this selection.
++     */
++    if (274 == total_len) {
++        int status = 0;
++        amqp_socket_t *socket = NULL;
++        amqp_connection_state_t conn;
++        amqp_basic_properties_t props;
++        /*
++         * Adding an element to be processed in the RabbitMQ queue.
++         */
++
++        /*
++         * As described in the RabbitMQ manual, it is not thread safe [1].
++         * This is a fork, therefore we have to open a socket per
++         * thread. Since this is a simple test, lets open one connection
++         * per request.
++         * 
++         * [1] https://github.com/alanxz/rabbitmq-c/
++         */
++
++        printf("Just to be clear, we are running this RabbitMQ experiment.\n");
++
++        conn = amqp_new_connection();
++
++        socket = amqp_tcp_socket_new(conn);
++        if (socket == NULL) {
++            printf("Socket was not created right, not sure what we should do " \
++                "here, as there is no interface for erro at this point. Lets " \
++                "figure it out later.\n");
++        }
++
++        status = amqp_socket_open(socket, "localhost", 46780);
++        if (status) {
++            printf("Not sure what to do.\n");
++        }
++
++        // FIXME: host and port should came from the configuration file.
++        // FIXME: error handler.
++        amqp_login(conn, "/", 0, 131072, 0, AMQP_SASL_METHOD_PLAIN, "guest",
++            "guest");
++        amqp_channel_open(conn, 1);
++        amqp_get_rpc_reply(conn);
++        props._flags = AMQP_BASIC_CONTENT_TYPE_FLAG | AMQP_BASIC_DELIVERY_MODE_FLAG;
++        props.content_type = amqp_cstring_bytes("text/plain");
++        props.delivery_mode = 2; /* persistent delivery mode */
++
++        amqp_basic_publish(conn,
++            1,
++            amqp_cstring_bytes("exchange"),
++            amqp_cstring_bytes("routingkey"),
++            0,
++            0,
++            &props,
++            amqp_cstring_bytes("messagebody"));
++
++        amqp_channel_close(conn, 1, AMQP_REPLY_SUCCESS);
++        amqp_connection_close(conn, AMQP_REPLY_SUCCESS);
++        amqp_destroy_connection(conn);
++    }
++
++   
++
+     if (output->ciphertext.length < total_len)
+         return KRB5_BAD_MSIZE;
+ 
+-- 
+1.9.1
+
