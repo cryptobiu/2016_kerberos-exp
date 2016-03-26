@@ -21,35 +21,51 @@ def main():
 
 
 def on_request(ch, method, props, body):
-    print " - new request to be encrypted."
-    print "   Dump:   (data)"
-    hexdump.hexdump(body[:16])
-    print "   Dump:   (nonce+counter)"
-    hexdump.hexdump(body[16:])
-    print "   we are going to reply using the key: password"
     response = encrypt(body)
-    print " Reply dump:"
-    hexdump.hexdump(response)
 
     ch.basic_publish(exchange='',
             routing_key=props.reply_to,
             properties=pika.BasicProperties(correlation_id = \
                     props.correlation_id),
-            body="teste")
+            body=response)
     ch.basic_ack(delivery_tag = method.delivery_tag)
 
 
 def encrypt(data):
-    key = "bc155de16c053f81a4dd3f907c58f88b"  # Should be password, but it is not :(
-    key = "286755fad04869ca523320acce0dc6a4"
+    # nounce + countr - 16 bytes 
+    # key / user id   - 16 bytes 
+    # data            - n bytes 
     nonce = data[:8]
-    data = data[16:]
-    ctr_e = Counter.new(64, initial_value=0, prefix=nonce)
+    count = data[8:16]
+    key = data[16:32]
+    data = data[32:]
 
+    ctr_e = Counter.new(64, initial_value=0, prefix=nonce)
     enc = AES.new(key, mode=AES.MODE_CTR, counter=ctr_e)
     edata = enc.encrypt(data)
 
+    print "Nonce: "
+    hexdump.hexdump(nonce)
+    print "Count: "
+    hexdump.hexdump(count)
+    print "Key: "
+    hexdump.hexdump(key)
+    print "Bofore encryption:"
+    hexdump.hexdump(data)
+    print "After encryption:"
+    hexdump.hexdump(edata)
     return edata
+"""
+    print " ---- Optimization ---- "
+    data2 = []
+    for i in data:
+        data2.append(0x00)
+    ctr_e2 = Counter.new(64, initial_value=0, prefix=nonce)
+    enc2 = AES.new(key, mode=AES.MODE_CTR, counter=ctr_e2)
+    edata2 = enc.encrypt(data)
+    print "Encrypted data:"
+    hexdump.hexdump(edata2)
+"""
 
 if __name__ == "__main__":
         main()
