@@ -6,6 +6,7 @@ import hexdump
 import hashlib
 import os
 import pika
+import math
 
 def main():
     connection = pika.BlockingConnection(pika.ConnectionParameters(
@@ -38,11 +39,12 @@ def encrypt(data):
     nonce = data[:8]
     count = data[8:16]
     key = data[16:32]
-    data = data[32:]
 
-    ctr_e = Counter.new(64, initial_value=0, prefix=nonce)
-    enc = AES.new(key, mode=AES.MODE_CTR, counter=ctr_e)
-    edata = enc.encrypt(data)
+    enc = ""
+    c = Counter.new(64, initial_value=0, prefix=nonce)
+    e = AES.new(key, AES.MODE_ECB)
+    for n in xrange(n_blocks):
+        enc = enc + e.encrypt(str(c()))
 
     print "Nonce: "
     hexdump.hexdump(nonce)
@@ -50,22 +52,8 @@ def encrypt(data):
     hexdump.hexdump(count)
     print "Key: "
     hexdump.hexdump(key)
-    print "Bofore encryption:"
-    hexdump.hexdump(data)
-    print "After encryption:"
-    hexdump.hexdump(edata)
-    return edata
-"""
-    print " ---- Optimization ---- "
-    data2 = []
-    for i in data:
-        data2.append(0x00)
-    ctr_e2 = Counter.new(64, initial_value=0, prefix=nonce)
-    enc2 = AES.new(key, mode=AES.MODE_CTR, counter=ctr_e2)
-    edata2 = enc.encrypt(data)
-    print "Encrypted data:"
-    hexdump.hexdump(edata2)
-"""
+
+    return enc
 
 if __name__ == "__main__":
         main()
