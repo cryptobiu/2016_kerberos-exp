@@ -62,7 +62,6 @@ def encrypt(data):
     print "Enc: "
     hexdump.hexdump(enc)
 
-
     return enc
 
 if __name__ == "__main__":
