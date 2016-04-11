@@ -12,8 +12,7 @@ void *perform_test (void *ttest) {
 	for (i = 0; i < test->requests; i++) {
 		int ret = 0;
 		struct test_result_t *t = &res[offset+i];
-		int doff = (int) id * 4;
-		if (doff) { doff = doff + 1; }
+		int doff = (int) id + 4;
 
 		gettimeofday(&t->start, NULL);
 		ret = retrieve_token(test->user, test->tgt, test->service,
@@ -23,8 +22,8 @@ void *perform_test (void *ttest) {
 		}
 		gettimeofday(&t->stop, NULL);
 
-		printf("\033[10;%dH%02d%% - id:`%d`               ",
-			doff, (int) (i * 100 / test->requests, id));
+		printf("\033[%d;10f - thread:%d - %02d%%             ",
+			doff, id, (int) (i * 100 / test->requests), id);
 
 		//printf("\033[11;%dH%s", doff, "....");
 		//printf("t:%d - n:%d\n", test->thread, i);
@@ -84,10 +83,10 @@ int retrieve_token(char *person, char *tgtname,
 		goto failed;
 	}
 
+#if 0
 	memset(&st, 0, sizeof(st));
 	st.client = client;
 	st.server = server;
-
 	ret = krb5_get_cred_via_tkt(context, &tgt, 0, NULL, &st, &tgts);
 	if (ret) {
 		fprintf(stderr, "Error in get_credentials().\n");
@@ -125,7 +124,7 @@ int retrieve_token(char *person, char *tgtname,
 	if (ret) {
 		fprintf(stderr, "Error in decrypt()\n");
 	}
-
+#endif
 	return 0;
 failed:
 	return 1;

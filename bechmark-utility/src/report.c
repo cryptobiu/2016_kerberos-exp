@@ -20,11 +20,11 @@ int print_report(struct test_result_t *res, size_t n) {
 		total = total + delta;
 	}
 
-	fprintf(stdout, "Slow	: %fms\n", slow);
-	fprintf(stdout, "Fast	: %fms\n", fast);
-	fprintf(stdout, "Total  : %fms\n", total);
-	fprintf(stdout, "# reqs : %d requests\n", n);
+	fprintf(stderr, "Slow	: %fms\n", slow);
+	fprintf(stderr, "Fast	: %fms\n", fast);
+	fprintf(stderr, "Total  : %fms\n", total);
+	fprintf(stderr, "# reqs : %d requests\n", n);
 
-	fprintf(stdout, "\n");
+    fprintf(stderr, "\n");
 }
 
