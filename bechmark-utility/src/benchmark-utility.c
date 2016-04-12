@@ -39,6 +39,9 @@ int main (int argc, char **argv) {
 	char *user = NULL;
 	char *password = NULL;
 
+    struct timeval stop;
+    struct timeval start;
+
 	opterr = 0;
 
 	while (1) {
@@ -127,6 +130,7 @@ int main (int argc, char **argv) {
 	printf("      TgT: %s\n", tgt);
 	printf("\n");
 
+    gettimeofday(&start, NULL);
 	for (i = 0; i < n_threads; i++) {
 		struct test_config_t *test = malloc(sizeof(struct test_config_t));
 		test->user = user;
@@ -147,8 +151,9 @@ int main (int argc, char **argv) {
 	for (i = 0; i < n_threads; i++) {
 		pthread_join(threads[i], NULL);
 	}
+    gettimeofday(&stop, NULL);
 
-	print_report(res, n_requests*n_threads);
+	print_report(res, n_requests*n_threads, timedifference_msec(&stop, &start));
 
 	free(threads);
 	free(res);

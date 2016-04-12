@@ -24,9 +24,6 @@ void *perform_test (void *ttest) {
 
 		printf("\033[%d;10f - thread:%d - %02d%%             ",
 			doff, id, (int) (i * 100 / test->requests), id);
-
-		//printf("\033[11;%dH%s", doff, "....");
-		//printf("t:%d - n:%d\n", test->thread, i);
 	}
 }
 

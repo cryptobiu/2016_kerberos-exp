@@ -7,6 +7,6 @@
 #ifndef REPORT_H__
 #define REPORT_H__
 
-int print_report(struct test_result_t *res, size_t n);
+int print_report(struct test_result_t *res, size_t n, float total_time);
 
 #endif
